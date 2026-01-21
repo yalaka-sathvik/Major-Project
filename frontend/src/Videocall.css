@@ -4,7 +4,7 @@
   width: 100vw !important;
   margin: 0 !important;
   padding: 0 !important;
-  background: #121212;
+  background: linear-gradient(135deg, #fef3ff 0%, #fce4ec 50%, #e1bee7 100%);
   position: fixed;
   top: 0;
   left: 0;
@@ -24,7 +24,7 @@
 
 /* Room title */
 .room-title {
-  color: white;
+  color: #4a148c;
   text-align: center;
   margin-top: 10px;
   font-size: 20px;
@@ -47,7 +47,7 @@
 
 /* Grid for remote users + self video when chat open */
 .remote-grid {
-  background: #000;
+  background: #fef3ff;
   border-radius: 12px;
   flex-grow: 1;
   display: grid;
@@ -82,12 +82,13 @@
 /* Chat box styles */
 .chat-box {
   width: 30%;
-  background: #222;
+  background: #ffffff;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
+  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.2);
 }
 
 /* Chat messages container with scroll */
@@ -95,7 +96,7 @@
   flex-grow: 1;
   padding: 15px;
   overflow-y: auto;
-  color: white;
+  color: #4a148c;
   font-size: 14px;
 }
 
@@ -113,16 +114,16 @@
 
 /* Messages sent by you aligned right */
 .my-message {
-  background-color: #4caf50;
-  color: white;
+  background: linear-gradient(135deg, #ff9a9e, #fecfef);
+  color: #4a148c;
   margin-left: auto;
   text-align: right;
 }
 
 /* Messages from others aligned left */
 .other-message {
-  background-color: #444;
-  color: white;
+  background-color: #f3e5f5;
+  color: #4a148c;
   margin-right: auto;
   text-align: left;
 }
@@ -130,21 +131,21 @@
 /* Chat input area */
 .chat-input {
   display: flex;
-  border-top: 1px solid #333;
+  border-top: 1px solid #f3e5f5;
   padding: 10px;
   box-sizing: border-box;
-  background: #1b1b1b;
+  background: #ffffff;
 }
 
 .chat-input input {
   flex-grow: 1;
   padding: 8px 12px;
   border-radius: 6px;
-  border: none;
+  border: 1px solid #f3e5f5;
   font-size: 14px;
   outline: none;
-  background: #333;
-  color: white;
+  background: #fef3ff;
+  color: #4a148c;
 }
 
 .chat-input button {
@@ -152,7 +153,7 @@
   padding: 8px 14px;
   border: none;
   border-radius: 6px;
-  background-color: #4caf50;
+  background: linear-gradient(135deg, #ff9a9e, #fecfef);
   color: white;
   cursor: pointer;
   font-weight: 600;
@@ -160,7 +161,27 @@
 }
 
 .chat-input button:hover {
-  background-color: #43a047;
+  background: linear-gradient(135deg, #ff6b9d, #f8bbd0);
+}
+
+/* Darker buttons for light mode in video call */
+[data-theme="light"] .chat-input button {
+  background: linear-gradient(135deg, #1976d2, #1565c0) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .chat-input button:hover {
+  background: linear-gradient(135deg, #1565c0, #0d47a1) !important;
+}
+
+[data-theme="light"] .video-wrapper button {
+  background: linear-gradient(135deg, #1976d2, #1565c0) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+[data-theme="light"] .video-wrapper button:hover {
+  background: linear-gradient(135deg, #1565c0, #0d47a1) !important;
 }
 
 /* Floating own video (when chat closed) */
@@ -173,8 +194,8 @@
   border-radius: 12px;
   overflow: hidden;
   z-index: 999;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
-  background-color: #000;
+  box-shadow: 0 0 10px rgba(233, 30, 99, 0.3);
+  background-color: #ffffff;
 }
 
 /* Each video box */
@@ -197,8 +218,8 @@
 .video-disabled {
   width: 100%;
   height: 100%;
-  background-color: #444;
-  color: white;
+  background-color: #f3e5f5;
+  color: #4a148c;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -208,7 +229,7 @@
 
 /* Username label */
 .username {
-  color: white;
+  color: #4a148c;
   margin: 5px 0;
 }
 
@@ -218,7 +239,7 @@
   justify-content: center;
   gap: 12px;
   padding: 15px 0;
-  background-color: #121212;
+  background: linear-gradient(135deg, #fef3ff 0%, #fce4ec 50%, #e1bee7 100%);
 }
 
 /* Buttons style */
@@ -293,7 +314,7 @@
     width: 100%;
     height: 100%;
     z-index: 10003;
-    background: #1b1b1b;
+    background: #fce4ec;
     display: flex;
     flex-direction: column;
     border-radius: 0;
@@ -309,10 +330,10 @@
 
   .chat-input {
     padding: 8px;
-    border-top: 1px solid #333;
+    border-top: 1px solid #f3e5f5;
     display: flex;
     gap: 8px;
-    background: #1b1b1b;
+    background: #fce4ec;
     z-index: 1;
   }
 
@@ -331,7 +352,7 @@
     position: fixed;
     bottom: 0;
     width: 100%;
-    background-color: #121212;
+    background: linear-gradient(135deg, #fef3ff 0%, #fce4ec 50%, #e1bee7 100%);
     padding: 10px 0;
     display: flex;
     justify-content: center;
@@ -373,18 +394,19 @@
 
 .participants-box {
   width: 250px;
-  background-color: #000;
-  color: white;
+  background-color: #ffffff;
+  color: #4a148c;
   padding: 1rem;
   overflow-y: auto;
-  border-left: 1px solid #333;
+  border-left: 1px solid #f3e5f5;
   border-radius: 12px;
   box-sizing: border-box;
+  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.2);
 }
 
 .participants-box h3 {
   margin-top: 0;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid #f3e5f5;
   padding-bottom: 0.5rem;
 }
 
@@ -396,7 +418,7 @@
 
 .participants-box li {
   padding: 0.5rem 0;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid #f3e5f5;
 }
 .past-meetings-container {
   max-width: 800px;
@@ -408,7 +430,7 @@
 .title {
   text-align: center;
   margin-bottom: 20px;
-  color: #333;
+  color: #4a148c;
 }
 
 .no-meetings {

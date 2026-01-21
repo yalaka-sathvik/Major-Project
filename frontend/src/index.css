@@ -1,39 +1,92 @@
 :root {
-  --bg-color: #fff7e6;
-  --text-color: #1a1a1a;
-  --card-bg: #fff1cc;
-  --card-hover: #ffe4a3;
-  --primary-color: #ff9900;
-  --btn-bg: linear-gradient(135deg, #efd19a, #ccffcc);
-  --btn-text: #000000;
-  --modal-bg: linear-gradient(135deg, #f0de7a, #a8e6cf);
-  --gradient-card-bg: linear-gradient(135deg, #efd19a, #ccffcc);
+  --bg-color: #fef3ff;
+  --text-color: #4a148c;
+  --card-bg: #ffffff;
+  --card-hover: #fce4ec;
+  --primary-color: #e91e63;
+  --btn-bg: linear-gradient(135deg, #ff9a9e, #fecfef, #fecfef);
+  --btn-text: #ffffff;
+  --modal-bg: linear-gradient(135deg, #ffffff, #fce4ec, #f3e5f5);
+  --gradient-card-bg: linear-gradient(135deg, #ff9a9e, #fecfef, #a8edea);
 }
 
 /* Light Theme */
 [data-theme="light"] {
-  --bg-color: #ffffff;
-  --text-color: #000000;
-  --card-bg: #f9f9f9;
-  --card-hover: #f0f0f0;
-  --primary-color: #007bff;
-  --btn-bg: #e6e6e6;
-  --btn-text: #000000;
-  --modal-bg: #ffffff;
-  --gradient-card-bg: linear-gradient(135deg, #f0f0f0, #ffffff);
+  --bg-color: #e3f2fd;
+  --text-color: #1565c0;
+  --card-bg: #ffffff;
+  --card-hover: #bbdefb;
+  --primary-color: #2196f3;
+  --btn-bg: linear-gradient(135deg, #1976d2, #1565c0);
+  --btn-text: #ffffff;
+  --modal-bg: linear-gradient(135deg, #ffffff, #e3f2fd);
+  --gradient-card-bg: linear-gradient(135deg, #64b5f6, #42a5f5, #90caf9);
+}
+
+/* Darker buttons for light mode */
+[data-theme="light"] .btn-primary {
+  background: linear-gradient(135deg, #1976d2, #1565c0) !important;
+  border-color: #1565c0 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+[data-theme="light"] .btn-primary:hover {
+  background: linear-gradient(135deg, #1565c0, #0d47a1) !important;
+  border-color: #0d47a1 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .btn-success {
+  background: linear-gradient(135deg, #2e7d32, #1b5e20) !important;
+  border-color: #1b5e20 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+[data-theme="light"] .btn-success:hover {
+  background: linear-gradient(135deg, #1b5e20, #0d4f1c) !important;
+  border-color: #0d4f1c !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .btn-danger {
+  background: linear-gradient(135deg, #c62828, #b71c1c) !important;
+  border-color: #b71c1c !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+[data-theme="light"] .btn-danger:hover {
+  background: linear-gradient(135deg, #b71c1c, #8e0000) !important;
+  border-color: #8e0000 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] button:not(.btn-primary):not(.btn-success):not(.btn-danger):not(.themed-btn):not(.btn-custom):not(.btn-close) {
+  background: linear-gradient(135deg, #1976d2, #1565c0) !important;
+  border-color: #1565c0 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+[data-theme="light"] button:not(.btn-primary):not(.btn-success):not(.btn-danger):not(.themed-btn):not(.btn-custom):not(.btn-close):hover {
+  background: linear-gradient(135deg, #1565c0, #0d47a1) !important;
+  border-color: #0d47a1 !important;
+  color: #ffffff !important;
 }
 
 /* Dark Theme */
 [data-theme="dark"] {
-  --bg-color: #121212;
+  --bg-color: #0a0a0f;
   --text-color: #ffffff;
-  --card-bg: #1e1e1e;
-  --card-hover: #2a2a2a;
-  --primary-color: #0d6efd;
-  --btn-bg: #1a1a1a;
+  --card-bg: #1a1625;
+  --card-hover: #2a2440;
+  --primary-color: #8b5cf6;
+  --btn-bg: linear-gradient(135deg, #6366f1, #8b5cf6);
   --btn-text: #ffffff;
-  --modal-bg: #000000;
-  --gradient-card-bg: linear-gradient(135deg, #2a2a2a, #1e1e1e);
+  --modal-bg: linear-gradient(135deg, #1a1625, #2a2440);
+  --gradient-card-bg: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
 }
 
 body {
@@ -53,18 +106,18 @@ body {
 }
 
 [data-theme="golden"] body {
-  background-image: url("../images/istockphoto-1268728034-612x612.jpg");
+  background: linear-gradient(135deg, #fef3ff 0%, #fce4ec 50%, #e1bee7 100%);
+  background-attachment: fixed;
 }
 
 [data-theme="light"] body {
-  background-image: url("../images/fragmented-white.jpg");
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: center;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%, #90caf9 100%);
+  background-attachment: fixed;
 }
 
 [data-theme="dark"] body {
-  background-color: #000000;
+  background: linear-gradient(135deg, #0a0a0f 0%, #1a1625 50%, #0f0c29 100%);
+  background-attachment: fixed;
 }
 
 a {
@@ -73,7 +126,7 @@ a {
   text-decoration: none;
 }
 a:hover {
-  color: #535bf2;
+  color: #e91e63;
 }
 
 h1 {
@@ -91,8 +144,8 @@ button,
 
 button:hover,
 .btn-custom:hover {
-  background-color: var(--primary-color);
-  color: var(--bg-color);
+  background: linear-gradient(135deg, #ff6b9d, #f8bbd0, #7dd3cc);
+  color: #ffffff;
 }
 
 button:focus,
@@ -115,7 +168,7 @@ button:focus-visible {
 
 .card:hover {
   transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 12px 24px rgba(255, 165, 0, 0.3);
+  box-shadow: 0 12px 24px rgba(233, 30, 99, 0.3);
 }
 
 .card-body {
@@ -146,7 +199,7 @@ button:focus-visible {
   max-width: 420px;
   color: var(--text-color);
   position: relative;
-  box-shadow: 0px 4px 20px rgba(0, 100, 0, 0.3);
+  box-shadow: 0px 4px 20px rgba(233, 30, 99, 0.25);
   animation: slideIn 0.3s ease;
 }
 
@@ -176,8 +229,8 @@ button:focus-visible {
 .modal-content .submit-btn {
   width: 100%;
   padding: 0.8rem;
-  background: linear-gradient(to right, #ffa500, #90ee90);
-  color: #1f1f1f;
+  background: linear-gradient(to right, #ff9a9e, #fecfef, #a8edea);
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   font-weight: bold;
@@ -185,7 +238,7 @@ button:focus-visible {
   transition: background 0.2s ease-in-out;
 }
 .modal-content .submit-btn:hover {
-  background: linear-gradient(to right, #ff8800, #66cc66);
+  background: linear-gradient(to right, #ff6b9d, #f8bbd0, #7dd3cc);
 }
 
 @keyframes slideIn {
@@ -202,15 +255,15 @@ button:focus-visible {
 .btn-custom {
   padding: 0.6rem 1.2rem;
   border-radius: 10px;
-  background: linear-gradient(to right, #ffa500, #90ee90);
-  color: #1f1f1f;
+  background: linear-gradient(to right, #ff9a9e, #fecfef, #a8edea);
+  color: #ffffff;
   font-weight: 600;
   border: none;
   transition: 0.2s;
   margin: 0.5rem;
 }
 .btn-custom:hover {
-  background: linear-gradient(to right, #ff8800, #66cc66);
+  background: linear-gradient(to right, #ff6b9d, #f8bbd0, #7dd3cc);
 }
 
 .custom-input::placeholder {
@@ -244,18 +297,23 @@ button:focus-visible {
   white-space: nowrap;
 }
 
+[data-theme="light"] .themed-btn {
+  background: linear-gradient(135deg, #1976d2, #1565c0) !important;
+  color: #ffffff !important;
+}
+
 [data-theme="light"] .themed-btn:hover {
-  background-color: #000000;
-  color: #ffffff;
+  background: linear-gradient(135deg, #1565c0, #0d47a1) !important;
+  color: #ffffff !important;
 }
 
 [data-theme="dark"] .themed-btn:hover {
-  background-color: #ffffff;
-  color: #000000;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #ffffff;
 }
 
 [data-theme="golden"] .themed-btn:hover {
-  background-color: #000000;
+  background: linear-gradient(135deg, #ff6b9d, #f8bbd0);
   color: #ffffff;
 }
 .profile-card {
@@ -269,16 +327,16 @@ button:focus-visible {
   transition: background-color 0.3s, color 0.3s;
 }
 :root {
-  --theme-container-bg: linear-gradient(to right, #efd19a, #ccffcc);
+  --theme-container-bg: linear-gradient(135deg, #ff9a9e, #fecfef, #a8edea);
 }
 [data-theme="dark"] {
-  --theme-container-bg: #121212;
+  --theme-container-bg: linear-gradient(135deg, #1a1625, #2a2440);
 }
 [data-theme="light"] {
-  --theme-container-bg: #ffffff;
+  --theme-container-bg: linear-gradient(135deg, #e3f2fd, #bbdefb);
 }
 [data-theme="golden"] {
-  --theme-container-bg: linear-gradient(135deg, #ffe1a1, #f4f4d0);
+  --theme-container-bg: linear-gradient(135deg, #ffffff, #fce4ec, #f3e5f5);
 }
 
 .theme-container {

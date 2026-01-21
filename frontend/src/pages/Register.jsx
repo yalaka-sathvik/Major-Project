@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
@@ -14,7 +14,23 @@ function Register() {
     username: "",
   });
 
+  const [otpStep, setOtpStep] = useState(false); // false = registration form, true = OTP verification
+  const [otp, setOtp] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [resendTimer, setResendTimer] = useState(0);
+
   const { email, password, username } = inputValue;
+
+  // Timer for resend OTP
+  useEffect(() => {
+    let interval = null;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const handleOnChange = (e) => {
     const { name, value } = e.target;
@@ -41,23 +57,79 @@ function Register() {
       const { success, message } = data;
       if (success) {
         handleSuccess(message);
-        localStorage.setItem("token", data.user.token);
-        localStorage.setItem("username", data.user.username);
-        localStorage.setItem("email", data.user.email);
-        localStorage.setItem(
-          "profilePic",
-          data.user.profilePic || "/images/2903-default-blue.png"
-        );
-        setTimeout(() => navigate("/"), 1000);
+        setUserEmail(email);
+        setOtpStep(true);
+        setResendTimer(60); // 60 seconds cooldown for resend
       } else {
         handleError(message);
       }
     } catch (error) {
       console.error(error);
-      handleError("Registration failed. Please try again.");
+      const errorMessage = error.response?.data?.message || "Registration failed. Please try again.";
+      handleError(errorMessage);
+    }
+  };
+
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    if (otp.length !== 6) {
+      handleError("Please enter a valid 6-digit OTP");
+      return;
     }
 
-    setInputValue({ email: "", password: "", username: "" });
+    try {
+      const { data } = await axios.post(
+        `${BackendURL}/verify-otp`,
+        { email: userEmail, otp },
+        { withCredentials: true }
+      );
+
+      const { success, message, user } = data;
+      if (success) {
+        handleSuccess(message);
+        localStorage.setItem("token", user.token);
+        localStorage.setItem("username", user.username);
+        localStorage.setItem("email", user.email);
+        localStorage.setItem(
+          "profilePic",
+          user.profilePic || "/images/2903-default-blue.png"
+        );
+        setTimeout(() => navigate("/"), 1500);
+      } else {
+        handleError(message);
+      }
+    } catch (error) {
+      console.error(error);
+      const errorMessage = error.response?.data?.message || "OTP verification failed. Please try again.";
+      handleError(errorMessage);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (resendTimer > 0) {
+      handleError(`Please wait ${resendTimer} seconds before resending OTP`);
+      return;
+    }
+
+    try {
+      const { data } = await axios.post(
+        `${BackendURL}/resend-otp`,
+        { email: userEmail },
+        { withCredentials: true }
+      );
+
+      const { success, message } = data;
+      if (success) {
+        handleSuccess(message);
+        setResendTimer(60); // Reset timer
+      } else {
+        handleError(message);
+      }
+    } catch (error) {
+      console.error(error);
+      const errorMessage = error.response?.data?.message || "Failed to resend OTP. Please try again.";
+      handleError(errorMessage);
+    }
   };
 
   return (
@@ -66,82 +138,164 @@ function Register() {
         className="theme-container"
         style={{ width: "460px", height: "auto" }}
       >
-        <p style={{ fontWeight: "bold", fontSize: "24px" }}>
-          Create an Account
-        </p>
+        {!otpStep ? (
+          <>
+            <p style={{ fontWeight: "bold", fontSize: "24px" }}>
+              Create an Account
+            </p>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label htmlFor="username" className="form-label">
-              Username
-            </label>
-            <input
-              className="form-control"
-              type="text"
-              name="username"
-              value={username}
-              placeholder="Enter username"
-              onChange={handleOnChange}
-              required
-            />
+            <form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <label htmlFor="username" className="form-label">
+                  Username
+                </label>
+                <input
+                  className="form-control"
+                  type="text"
+                  name="username"
+                  value={username}
+                  placeholder="Enter username"
+                  onChange={handleOnChange}
+                  required
+                />
 
-            <label htmlFor="email" className="form-label mt-3">
-              Email address
-            </label>
-            <input
-              type="email"
-              className="form-control"
-              name="email"
-              value={email}
-              placeholder="Enter your email"
-              onChange={handleOnChange}
-              required
-            />
-            <div id="emailHelp" className="form-text">
-              We'll never share your email with anyone else.
-            </div>
-          </div>
+                <label htmlFor="email" className="form-label mt-3">
+                  Email address
+                </label>
+                <input
+                  type="email"
+                  className="form-control"
+                  name="email"
+                  value={email}
+                  placeholder="Enter your email"
+                  onChange={handleOnChange}
+                  required
+                />
+                <div id="emailHelp" className="form-text">
+                  We'll never share your email with anyone else.
+                </div>
+              </div>
 
-          <div className="mb-3">
-            <label htmlFor="password" className="form-label">
-              Password
-            </label>
-            <input
-              type="password"
-              className="form-control"
-              name="password"
-              value={password}
-              placeholder="Enter your password"
-              onChange={handleOnChange}
-              required
-            />
-          </div>
+              <div className="mb-3">
+                <label htmlFor="password" className="form-label">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  className="form-control"
+                  name="password"
+                  value={password}
+                  placeholder="Enter your password"
+                  onChange={handleOnChange}
+                  required
+                />
+              </div>
 
-          <div className="mb-3 form-check">
-            <input type="checkbox" className="form-check-input" id="agree" />
-            <label className="form-check-label" htmlFor="agree">
-              I agree to terms and conditions
-            </label>
-          </div>
+              <div className="mb-3 form-check">
+                <input type="checkbox" className="form-check-input" id="agree" />
+                <label className="form-check-label" htmlFor="agree">
+                  I agree to terms and conditions
+                </label>
+              </div>
 
-          <button type="submit" className="btn btn-primary w-100">
-            Submit
-          </button>
-          <span className="d-block mt-3">
-            Already have an account? <Link to="/login">Login</Link>
-          </span>
-        </form>
+              <button type="submit" className="btn btn-primary w-100">
+                Submit
+              </button>
+              <span className="d-block mt-3">
+                Already have an account? <Link to="/login">Login</Link>
+              </span>
+            </form>
+
+            <button
+              className="btn btn-danger w-100 mt-3"
+              onClick={() => {
+                window.open(`${BackendURL}/auth/google`, "_self");
+              }}
+            >
+              <i className="fab fa-google me-2"></i> Sign in with Google
+            </button>
+          </>
+        ) : (
+          <>
+            <p style={{ fontWeight: "bold", fontSize: "24px" }}>
+              Verify Your Email
+            </p>
+            <p style={{ color: "var(--text-color)", fontSize: "14px", marginBottom: "20px" }}>
+              We've sent a 6-digit OTP to <strong>{userEmail}</strong>
+            </p>
+
+            <form onSubmit={handleVerifyOTP}>
+              <div className="mb-3">
+                <label htmlFor="otp" className="form-label">
+                  Enter OTP
+                </label>
+                <input
+                  className="form-control"
+                  type="text"
+                  name="otp"
+                  value={otp}
+                  placeholder="000000"
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setOtp(value);
+                  }}
+                  maxLength="6"
+                  style={{
+                    textAlign: "center",
+                    fontSize: "24px",
+                    letterSpacing: "8px",
+                    fontWeight: "bold",
+                  }}
+                  required
+                />
+                <div className="form-text">
+                  Please check your email for the verification code
+                </div>
+              </div>
+
+              <button type="submit" className="btn btn-primary w-100">
+                Verify OTP
+              </button>
+
+              <div className="mt-3 text-center">
+                <button
+                  type="button"
+                  className="btn btn-link"
+                  onClick={handleResendOTP}
+                  disabled={resendTimer > 0}
+                  style={{
+                    textDecoration: "none",
+                    color: resendTimer > 0 ? "#999" : "var(--primary-color)",
+                  }}
+                >
+                  {resendTimer > 0
+                    ? `Resend OTP in ${resendTimer}s`
+                    : "Resend OTP"}
+                </button>
+              </div>
+
+              <div className="mt-3 text-center">
+                <button
+                  type="button"
+                  className="btn btn-link"
+                  onClick={() => {
+                    setOtpStep(false);
+                    setOtp("");
+                    setResendTimer(0);
+                  }}
+                  style={{
+                    textDecoration: "none",
+                    color: "var(--primary-color)",
+                  }}
+                >
+                  Change Email
+                </button>
+              </div>
+            </form>
+          </>
+        )}
 
         <ToastContainer />
-
-        <button
-          className="btn btn-danger w-100 mt-3"
-          onClick={() => {
-            window.open(`${BackendURL}/auth/google`, "_self");
-          }}
-        >
-          <i className="fab fa-google me-2"></i> Sign in with Google
-        </button>
       </div>
     </div>
   );

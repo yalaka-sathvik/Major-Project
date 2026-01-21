@@ -86,7 +86,8 @@ function Preview() {
             width: "100%",
             maxWidth: "550px",
             borderRadius: "10px",
-            border: "2px solid #ccc",
+            border: "2px solid #ff9a9e",
+            boxShadow: "0 4px 12px rgba(255, 154, 158, 0.4)",
           }}
         />
       </div>

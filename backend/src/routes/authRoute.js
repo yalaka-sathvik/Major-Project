@@ -1,5 +1,5 @@
 const passport = require("passport");
-const { Register, Login } = require("../controllers/authController");
+const { Register, Login, VerifyOTP, ResendOTP } = require("../controllers/authController");
 const { userVerification } = require("../middlewares/authMiddleware");
 const router = require("express").Router();
 const multer = require("multer");
@@ -170,6 +170,8 @@ router.get("/history", async (req, res) => {
 });
 
 router.post("/register", Register);
+router.post("/verify-otp", VerifyOTP);
+router.post("/resend-otp", ResendOTP);
 router.get("/test", (req, res) => {
   return res.json({ message: "done!" });
 });

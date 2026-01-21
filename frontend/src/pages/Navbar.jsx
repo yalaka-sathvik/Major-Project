@@ -94,7 +94,7 @@ function Navbar() {
                     className="dropdown-item"
                     onClick={() => toggleTheme("golden")}
                   >
-                    🌇 Golden Hour
+                    🌸 Light Pink
                   </button>
                 </li>
               </ul>
