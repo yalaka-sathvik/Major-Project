@@ -63,9 +63,9 @@ function Preview() {
         username,
         admin,
       });
-      console.log(res);
+      const meetingDocId = res.data?.meetingDocId || null;
       navigate("/meeting", {
-        state: { meetingId, username, isVideo, isAudio },
+        state: { meetingId, username, isVideo, isAudio, meetingDocId },
       });
     } catch (error) {
       console.error("Failed to join:", error);

@@ -13,6 +13,24 @@ const meetingSchema = new Schema({
     type: String,
     required: true,
   },
+  recordingUrl: {
+    type: String,
+    default: null,
+  },
+  chatMessages: [
+    {
+      sender: String,
+      text: String,
+    },
+  ],
+  summary: {
+    type: String,
+    default: null,
+  },
+  transcript: {
+    type: String,
+    default: null,
+  },
 });
 
 module.exports = model("Meetings", meetingSchema);

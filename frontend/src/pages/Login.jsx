@@ -15,6 +15,17 @@ function Login() {
 
   const { email, password } = inputValue;
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const error = params.get("error");
+    if (error === "google_auth_failed" || error === "auth_failed") {
+      toast.error("Google login failed. Please try again.", {
+        position: "bottom-left",
+      });
+      navigate("/login", { replace: true });
+    }
+  }, [location.search, navigate]);
+
   const handleOnChange = (e) => {
     const { name, value } = e.target;
     setInputValue({ ...inputValue, [name]: value });

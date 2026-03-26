@@ -3,11 +3,14 @@ const googleStrategy=require("passport-google-oauth20").Strategy;
 const User=require("../src/models/user.models");
 const { createSecretToken } = require("../src/secretToken");
 require("dotenv").config();
+const BACKEND_URL =
+  process.env.BACKEND_URL || "https://clear-connect-xhdj.onrender.com";
+
 passport.use(
   new googleStrategy({
       clientID: process.env.GOOGLE_CLIENT_KEY,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "https://clear-connect-xhdj.onrender.com/auth/google/callback",
+      callbackURL: `${BACKEND_URL}/auth/google/callback`,
     },
     async (accessToken, refreshToken, profile, done) => {
         try {

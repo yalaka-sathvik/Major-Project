@@ -2,16 +2,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
+import axios from "axios";
 import socket from "./socket";
 import "../Videocall.css";
 import "react-toastify/dist/ReactToastify.css";
 
 const iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
+const BackendURL = import.meta.env.VITE_API_URL;
 
 export default function Videocall() {
   const navigate = useNavigate();
   const { state } = useLocation();
-  const { username, meetingId, isVideo, isAudio } = state;
+  const { username, meetingId, isVideo, isAudio, meetingDocId } = state || {};
 
   const [peers, setPeers] = useState([]);
   const [videoEnabled, setVideoEnabled] = useState(isVideo);
@@ -22,10 +24,23 @@ export default function Videocall() {
   const [newMessage, setNewMessage] = useState("");
   const [isParticipantsEnabled, setIsParticipantsEnabled] = useState(false);
   const [videoRefreshKey, setVideoRefreshKey] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+  const [subtitlesEnabled, setSubtitlesEnabled] = useState(false);
+  const [subtitleText, setSubtitleText] = useState("");
 
   const userVideo = useRef();
+  const recognitionRef = useRef(null);
+  const subtitlesEnabledRef = useRef(false);
+  subtitlesEnabledRef.current = subtitlesEnabled;
   const streamRef = useRef();
   const peerConnections = useRef({});
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+  const screenStreamRef = useRef(null);
+  const recordingAudioContextRef = useRef(null);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+  const transcriptRef = useRef("");
 
   const shouldFloatMyVideo =
     peers.length >= 1 && !chatOpen && !isParticipantsEnabled;
@@ -73,6 +88,43 @@ export default function Videocall() {
           videoEnabled: isVideo,
           audioEnabled: isAudio,
         });
+
+        // Start transcript capture for every call (subtitles → AI summary, no audio upload)
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition && !recognitionRef.current) {
+          const startRecognition = () => {
+            if (recognitionRef.current) return;
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = "en-US";
+            recognition.onresult = (event) => {
+              let text = "";
+              for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                  text += event.results[i][0].transcript + " ";
+                }
+              }
+              if (text) {
+                transcriptRef.current += text;
+                setSubtitleText((prev) => prev + text);
+              }
+            };
+            recognition.onerror = (e) => {
+              if (e.error !== "aborted" && e.error !== "no-speech") console.error("Speech recognition error:", e.error);
+            };
+            recognition.onend = () => {
+              if (recognitionRef.current) try { recognition.start(); } catch (_) {}
+            };
+            try {
+              recognition.start();
+              recognitionRef.current = recognition;
+            } catch (err) {
+              console.error("Could not start speech recognition:", err);
+            }
+          };
+          setTimeout(startRecognition, 400);
+        }
 
         socket.on("all-users", (users) => {
           users.forEach((user) => {
@@ -249,8 +301,33 @@ export default function Videocall() {
   };
 
   const handleDisconnect = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    const transcript = (transcriptRef.current || "").trim();
+    const adminUser = localStorage.getItem("username") || username;
+    if (transcript.length > 0) {
+      axios
+        .post(`${BackendURL}/meeting/save-transcript`, {
+          meetingId: meetingId || "",
+          admin: adminUser || username,
+          username: username || adminUser,
+          transcript,
+          meetingDocId: meetingDocId || undefined,
+        })
+        .then(() => toast.success("Transcript saved. View in Past Meetings.", { position: "bottom-right" }))
+        .catch((err) => console.error("Save transcript failed:", err));
+    }
+    if (isRecording && mediaRecorderRef.current?.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((t) => t.stop());
+      screenStreamRef.current = null;
+    }
     Object.values(peerConnections.current).forEach((p) => p.close());
-    streamRef.current.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((t) => t.stop());
     socket.disconnect();
     setPeers([]);
     setChatOpen(false);
@@ -281,10 +358,146 @@ export default function Videocall() {
     }
   };
 
+  const handleRecordToggle = async () => {
+    if (isRecording) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((t) => t.stop());
+        screenStreamRef.current = null;
+      }
+      return;
+    }
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+      });
+      screenStreamRef.current = screenStream;
+      screenStream.getVideoTracks()[0].onended = () => {
+        if (mediaRecorderRef.current?.state !== "inactive") {
+          mediaRecorderRef.current.stop();
+        }
+        screenStreamRef.current = null;
+        setIsRecording(false);
+      };
+      const combinedStream = new MediaStream();
+      screenStream.getVideoTracks().forEach((t) => combinedStream.addTrack(t));
+
+      // Use AudioContext to mix: local mic + remote participants (getDisplayMedia rarely has audio for screen/window)
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioContext.state === "suspended") await audioContext.resume();
+      const audioDestination = audioContext.createMediaStreamDestination();
+      let hasAnyAudio = false;
+
+      if (streamRef.current?.getAudioTracks().length > 0) {
+        const micSource = audioContext.createMediaStreamSource(streamRef.current);
+        micSource.connect(audioDestination);
+        hasAnyAudio = true;
+      }
+      peers.forEach((p) => {
+        if (p.stream?.getAudioTracks().length > 0) {
+          const remoteSource = audioContext.createMediaStreamSource(p.stream);
+          remoteSource.connect(audioDestination);
+          hasAnyAudio = true;
+        }
+      });
+      if (screenStream.getAudioTracks().length > 0) {
+        const screenSource = audioContext.createMediaStreamSource(screenStream);
+        screenSource.connect(audioDestination);
+        hasAnyAudio = true;
+      }
+      if (hasAnyAudio) {
+        audioDestination.stream.getAudioTracks().forEach((t) => combinedStream.addTrack(t));
+      }
+      recordingAudioContextRef.current = audioContext;
+
+      recordedChunksRef.current = [];
+      const mimeOpts = [
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8,opus",
+        "video/webm;codecs=vp9",
+        "video/webm",
+      ];
+      const mimeType = mimeOpts.find((m) => MediaRecorder.isTypeSupported(m)) || "video/webm";
+      const recorder = new MediaRecorder(combinedStream, {
+        mimeType,
+        videoBitsPerSecond: 2500000,
+        audioBitsPerSecond: 128000,
+      });
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
+      recorder.onstop = async () => {
+        setIsRecording(false);
+        if (recordingAudioContextRef.current) {
+          recordingAudioContextRef.current.close().catch(() => {});
+          recordingAudioContextRef.current = null;
+        }
+        if (screenStreamRef.current) {
+          screenStreamRef.current.getTracks().forEach((t) => t.stop());
+          screenStreamRef.current = null;
+        }
+        const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
+        const admin = localStorage.getItem("username");
+        const formData = new FormData();
+        formData.append("recording", blob, "recording.webm");
+        formData.append("meetingId", meetingId);
+        formData.append("admin", admin || username);
+        formData.append("chat", JSON.stringify(messagesRef.current));
+        try {
+          await axios.post(`${BackendURL}/meeting/recording`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+          toast.success("Recording saved successfully", { position: "bottom-right" });
+        } catch (err) {
+          console.error("Failed to upload recording:", err);
+          toast.error("Failed to save recording", { position: "bottom-center" });
+        }
+      };
+      recorder.start(1000);
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      toast.success("Recording entire screen/tab - select what to share", { position: "bottom-right" });
+    } catch (err) {
+      console.error("Recording error:", err);
+      toast.error("Screen share is required for recording. Please allow access.", { position: "bottom-center" });
+    }
+  };
+
   useEffect(() => {
     document.body.classList.toggle("chat-open", chatOpen);
     document.body.classList.toggle("participants-open", isParticipantsEnabled);
   }, [chatOpen, isParticipantsEnabled]);
+
+  const toggleSubtitles = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Subtitles not supported in this browser. Try Chrome or Edge.", {
+        position: "bottom-center",
+      });
+      return;
+    }
+    if (subtitlesEnabled) {
+      subtitlesEnabledRef.current = false;
+      setSubtitleText("");
+      setSubtitlesEnabled(false);
+      toast.info("Subtitles hidden (transcript still recorded for summary)", { position: "bottom-right" });
+      return;
+    }
+    subtitlesEnabledRef.current = true;
+    setSubtitlesEnabled(true);
+    toast.success("Subtitles on – speaking will appear as text", { position: "bottom-right" });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   return (
     <div className="video-wrapper">
@@ -356,7 +569,14 @@ export default function Videocall() {
             </ul>
           </div>
         )}
-      </div>
+
+        </div>
+
+      {subtitlesEnabled && (
+        <div className="subtitles-overlay">
+          <p>{subtitleText || "Listening..."}</p>
+        </div>
+      )}
 
       {shouldFloatMyVideo && (
         <div className="floating-self-video">
@@ -393,6 +613,14 @@ export default function Videocall() {
             alt: "present",
           },
           {
+            onClick: handleRecordToggle,
+            srcOn: isRecording
+              ? "https://img.icons8.com/ios-filled/50/stop-squared.png"
+              : "https://img.icons8.com/ios-filled/50/record.png",
+            alt: "record",
+            className: isRecording ? "recording-active" : "",
+          },
+          {
             onClick: handleParticipants,
             srcOn: "https://img.icons8.com/ios-filled/50/conference-foreground-selected.png",
             alt: "participants",
@@ -403,15 +631,21 @@ export default function Videocall() {
             alt: "chat",
           },
           {
+            onClick: toggleSubtitles,
+            srcOn: "https://img.icons8.com/ios-filled/50/closed-caption.png",
+            alt: "subtitles",
+            className: subtitlesEnabled ? "subtitles-active" : "",
+          },
+          {
             onClick: handleDisconnect,
             srcOn: "https://img.icons8.com/android/24/end-call.png",
             alt: "end-call",
           },
-        ].map(({ onClick, srcOn, srcOff, enabled = true, alt }, i) => (
+        ].map(({ onClick, srcOn, srcOff, enabled = true, alt, className = "" }, i) => (
           <button
             key={i}
             onClick={onClick}
-            className="control-btn"
+            className={`control-btn ${className}`}
             type="button"
           >
             <img
