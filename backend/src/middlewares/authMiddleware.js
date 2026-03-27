@@ -1,10 +1,10 @@
 // middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
-require("dotenv").config();
+const { loadEnv } = require("../utils/loadEnv");
+loadEnv();
 
 module.exports.userVerification = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log(req.headers.authorization);
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res
       .status(401)

@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import socket from "./socket";
-import axios from "axios";
-export const BackendURL = import.meta.env.VITE_API_URL;
+import api from "../utils/api";
 
 function Preview() {
   const { state } = useLocation();
-  const { meetingId, username } = state;
+  const meetingId = state?.meetingId || "";
+  const username = state?.username || "";
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [videoEnabled, setVideoEnabled] = useState(true);
@@ -16,6 +15,11 @@ function Preview() {
   document.body.classList.remove("modal-open");
 
   useEffect(() => {
+    if (!meetingId || !username) {
+      navigate("/", { replace: true });
+      return;
+    }
+
     const backdrop = document.querySelector(".modal-backdrop");
     if (backdrop) {
       backdrop.remove();
@@ -35,7 +39,7 @@ function Preview() {
       }
     };
     getVideo();
-  }, []);
+  }, [meetingId, username, navigate]);
 
   const toggleVideo = () => {
     const videoTrack = streamRef.current?.getVideoTracks()[0];
@@ -58,7 +62,7 @@ function Preview() {
     const isVideo = videoEnabled;
     const isAudio = audioEnabled;
     try {
-      const res = await axios.post(`${BackendURL}/past-meeting`, {
+      const res = await api.post("past-meeting", {
         meetingId,
         username,
         admin,

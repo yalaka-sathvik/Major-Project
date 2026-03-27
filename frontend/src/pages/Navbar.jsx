@@ -6,11 +6,6 @@ export const BackendURL = import.meta.env.VITE_API_URL;
 function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const handleError = (err) =>
-    toast.error(err, {
-      position: "bottom-left",
-    });
-
   const handleSuccess = (msg) =>
     toast.success(msg, {
       position: "bottom-right",

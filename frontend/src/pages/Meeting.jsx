@@ -1,10 +1,6 @@
-import React, { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
-import Chats from "./Chats";
+import React from "react";
 import Videocall from "./Videocall";
 function Meeting() {
-  const { state } = useLocation();
-  const { meetingId, username, isAudio, isVideo } = state;
   return (
     <>
       <div className="container">

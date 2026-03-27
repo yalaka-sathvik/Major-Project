@@ -55,7 +55,7 @@ function Profile() {
       } else {
         handleError("Failed to update profile");
       }
-    } catch (error) {
+    } catch {
       handleError("Error updating profile");
     }
   }
