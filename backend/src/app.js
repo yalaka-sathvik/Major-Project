@@ -17,7 +17,7 @@ const server = http.createServer(app);
 app.use(express.json());
 app.use(
   cors({
-    origin: ["https://clear-connect.vercel.app","http://localhost:5173", "http://localhost:9000"],
+    origin: ["https://clear-connect.vercel.app","http://localhost:5173", "http://localhost:5174", "http://localhost:9000", "http://192.168.1.27:5173", "http://192.168.1.27:5174", "http://192.168.1.27:9000"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
@@ -29,7 +29,12 @@ app.get("/", (req, res) => {
   res.send("server page");
 });
 const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: {
+    origin: ["https://clear-connect.vercel.app", "http://localhost:5173", "http://localhost:5174", "http://localhost:9000", "http://192.168.1.27:5173", "http://192.168.1.27:5174", "http://192.168.1.27:9000"],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+  transports: ["websocket", "polling"],
 });
 
 io.on("connection", (socket) => {
@@ -47,7 +52,8 @@ async function connectDb() {
     });
 }
 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`server is running on port ${PORT}`);
+  console.log(`Access from your network: http://192.168.1.27:${PORT}`);
   connectDb();
 });

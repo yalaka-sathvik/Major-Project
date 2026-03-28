@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Navbar from "./Navbar";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-export const BackendURL = import.meta.env.VITE_API_URL;
+import { BackendURL } from "../config/backendConfig";
 
 function LandingPage() {
   const [meetingId, setMeetingId] = useState("");
@@ -46,10 +46,14 @@ function LandingPage() {
       setMessage("Sign in or login to join a meeting");
       return;
     }
+    if (!meetingId.trim()) {
+      setMessage("Please enter a valid meeting ID");
+      return;
+    }
     console.log("joinnnnn");
     Navigate("/preview", {
       state: {
-        meetingId,
+        meetingId: meetingId.trim(),
         username,
         isCreating,
       },

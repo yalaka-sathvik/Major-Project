@@ -5,9 +5,10 @@ function handleSocket(io, socket) {
 
   // ✅ Chat room join
   socket.on("join-meeting", ({ meetingId }) => {
+    console.log(`📥 join-meeting received for ${meetingId} from ${socket.id}`);
     activeMeetings.add(meetingId);
     socket.join(meetingId);
-    console.log(`User ${socket.id} joined meeting ${meetingId} for chat.`);
+    console.log(`✓ User ${socket.id} joined meeting ${meetingId} for chat.`);
   });
 
   // ✅ Chat message
@@ -20,6 +21,10 @@ function handleSocket(io, socket) {
   socket.on(
     "join-room",
     ({ meetingId, username, videoEnabled, audioEnabled }) => {
+      console.log(`\n📥 join-room received for ${meetingId}`);
+      console.log(`   User: ${username}`);
+      console.log(`   Video: ${videoEnabled}, Audio: ${audioEnabled}\n`);
+      
       activeMeetings.add(meetingId);
       socket.data.username = username;
 
@@ -29,7 +34,7 @@ function handleSocket(io, socket) {
 
       socket.join(meetingId);
       console.log(
-        `User ${socket.id} joined room ${meetingId} (video: ${videoEnabled}, audio: ${audioEnabled})`
+        `✓ User ${socket.id} joined room ${meetingId} (video: ${videoEnabled}, audio: ${audioEnabled})`
       );
 
       // ✅ Collect info of other users already in the room
@@ -47,6 +52,8 @@ function handleSocket(io, socket) {
           };
         });
 
+      console.log(`📤 Sending ${usersInRoom.length} existing users to new peer`);
+      
       // ✅ Send the list of existing users to newly joined user
       socket.emit("all-users", usersInRoom);
 
@@ -60,15 +67,18 @@ function handleSocket(io, socket) {
 
       // ✅ Signaling for WebRTC (peer connection)
       socket.on("signal", ({ to, from, signal }) => {
+        console.log(`🔗 Forwarding signal from ${from} to ${to}`);
         io.to(to).emit("signal", { from, signal });
       });
 
       // ✅ Disconnection logic
       socket.on("disconnect", () => {
+        console.log(`👋 User ${socket.id} left room ${meetingId}`);
         socket.to(meetingId).emit("user-left", { userId: socket.id });
 
         const room = io.sockets.adapter.rooms.get(meetingId);
         if (!room || room.size === 0) {
+          console.log(`📉 Room ${meetingId} is now empty, removing...`);
           activeMeetings.delete(meetingId);
         }
       });

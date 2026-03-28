@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-export const BackendURL = import.meta.env.VITE_API_URL;
+import { BackendURL } from "../config/backendConfig";
 
 function Login() {
   const navigate = useNavigate();
@@ -63,7 +63,8 @@ function Login() {
       }
     } catch (error) {
       console.error(error);
-      handleError("Login failed. Please try again.");
+      const errorMessage = error.response?.data?.message || "Login failed. Please try again.";
+      handleError(errorMessage);
     }
 
     setInputValue({ email: "", password: "" });

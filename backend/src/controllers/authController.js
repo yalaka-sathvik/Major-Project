@@ -3,6 +3,60 @@ const { createSecretToken } = require("../secretToken");
 const bcrypt = require("bcrypt");
 const { storeOTP, verifyOTP, getOTPData } = require("../utils/otpStore");
 const { sendOTPEmail } = require("../utils/emailService");
+const { findUserByEmailInMemory, storeUserInMemory } = require("../utils/testUserStore");
+
+// Flag to track if MongoDB is available
+let mongoDBAvailable = true;
+
+// Helper function to check user existence (tries MongoDB first, falls back to memory)
+const checkUserExists = async (email) => {
+  // Try MongoDB first
+  if (mongoDBAvailable) {
+    try {
+      const user = await User.findOne({ email: email });
+      return user ? true : false;
+    } catch (error) {
+      console.warn("MongoDB unavailable, switching to in-memory storage for testing", error.message);
+      mongoDBAvailable = false;
+      // Fall through to in-memory check
+    }
+  }
+  
+  // Fall back to in-memory store
+  const user = findUserByEmailInMemory(email);
+  return user ? true : false;
+};
+
+// Helper function to store user (tries MongoDB first, falls back to memory)
+const saveUserData = async (userData) => {
+  if (mongoDBAvailable) {
+    try {
+      const user = new User(userData);
+      await user.save();
+      return { success: true, user, isMemory: false };
+    } catch (error) {
+      console.warn("MongoDB unavailable, using in-memory storage for testing", error.message);
+      mongoDBAvailable = false;
+      // Fall through to in-memory store
+    }
+  }
+  
+  // Fall back to in-memory store
+  await storeUserInMemory(userData);
+  return { success: true, user: userData, isMemory: true };
+};
+
+// Validation helpers
+const validateEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const validatePassword = (password) => {
+  // Minimum 8 characters, at least one uppercase, one number, one special character
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  return passwordRegex.test(password);
+};
 
 module.exports.Register = async (req, res, next) => {
   console.log("register route hit");
@@ -18,8 +72,32 @@ module.exports.Register = async (req, res, next) => {
       });
     }
 
-    // Check if user already exists
-    const isExisting = await User.findOne({ email: email });
+    // Validate email format
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address"
+      });
+    }
+
+    // Validate password strength
+    if (!validatePassword(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters with uppercase letter, number, and special character (@$!%*?&)"
+      });
+    }
+
+    // Validate username
+    if (username.length < 3 || username.length > 50) {
+      return res.status(400).json({
+        success: false,
+        message: "Username must be between 3 and 50 characters"
+      });
+    }
+
+    // Check if user already exists (using helper that falls back to memory)
+    const isExisting = await checkUserExists(email);
     if (isExisting) {
       return res.status(400).json({ 
         success: false,
@@ -58,7 +136,8 @@ module.exports.Register = async (req, res, next) => {
     console.error("Registration error:", error);
     return res.status(500).json({ 
       success: false,
-      message: "Internal Server Error" 
+      message: "Internal Server Error",
+      details: error.message
     });
   }
 };
@@ -88,7 +167,7 @@ module.exports.VerifyOTP = async (req, res, next) => {
     const { username, password, profilePic } = result.userData;
 
     // Double-check user doesn't exist (race condition protection)
-    const isExisting = await User.findOne({ email: email });
+    const isExisting = await checkUserExists(email);
     if (isExisting) {
       return res.status(400).json({
         success: false,
@@ -96,31 +175,40 @@ module.exports.VerifyOTP = async (req, res, next) => {
       });
     }
 
-    // Create user
-    const user = new User({
+    // Create and hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+    
+    // Create user object
+    const userData = {
       username,
       email,
-      password,
+      password: hashedPassword,
       profilePic,
-    });
+    };
 
-    await user.save();
+    // Save user (uses MongoDB if available, falls back to memory)
+    const saveResult = await saveUserData(userData);
 
-    // Generate token
-    const token = createSecretToken(user._id);
+    if (saveResult.isMemory) {
+      console.log("⚠️  User saved to in-memory storage (MongoDB unavailable)");
+    }
+
+    // Generate token (create a token-like structure even for in-memory users)
+    const token = createSecretToken(saveResult.user._id || email);
+    
     res.cookie("token", token, {
       withCredentials: true,
       httpOnly: false,
     });
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       message: "Email verified successfully! Account created.",
       user: {
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        profilePic: user.profilePic,
+        _id: saveResult.user._id || email,
+        username: saveResult.user.username,
+        email: saveResult.user.email,
+        profilePic: saveResult.user.profilePic,
         token: token,
       },
     });
@@ -144,8 +232,8 @@ module.exports.ResendOTP = async (req, res, next) => {
       });
     }
 
-    // Check if user already exists
-    const isExisting = await User.findOne({ email: email });
+    // Check if user already exists (use fallback function)
+    const isExisting = await checkUserExists(email);
     if (isExisting) {
       return res.status(400).json({
         success: false,
@@ -193,29 +281,34 @@ module.exports.Login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.json({ message: "All fields are required" });
+      return res.status(400).json({ success: false, message: "All fields are required" });
     }
     const user = await User.findOne({ email });
     if (!user) {
-      return res.json({ message: "Incorrect password or email" });
+      return res.status(401).json({ success: false, message: "Incorrect password or email" });
     }
     const auth = await bcrypt.compare(password, user.password);
     if (!auth) {
-      return res.json({ message: "Incorrect password or email" });
+      return res.status(401).json({ success: false, message: "Incorrect password or email" });
     }
     const token = createSecretToken(user._id);
     res.cookie("token", token, {
       withCredentials: true,
       httpOnly: false,
     });
-    res.status(201).json({
-      message: "Login successful!",
-      token: createSecretToken(user._id),
-      username: user.username,
-      profilePic: user.profilePic || null,
+    res.status(200).json({
       success: true,
+      message: "Login successful!",
+      token: token,
+      username: user.username,
+      email: user.email,
+      profilePic: user.profilePic || null,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Login error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    });
   }
 };

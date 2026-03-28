@@ -76,12 +76,14 @@ export default function Videocall() {
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: true })
       .then((stream) => {
+        console.log("✓ Media stream acquired successfully");
         stream.getVideoTracks().forEach((track) => (track.enabled = isVideo));
         stream.getAudioTracks().forEach((track) => (track.enabled = isAudio));
 
         userVideo.current.srcObject = stream;
         streamRef.current = stream;
 
+        console.log("Emitting join-room event with:", { meetingId, username, isVideo, isAudio });
         socket.emit("join-room", {
           meetingId,
           username,
@@ -127,6 +129,7 @@ export default function Videocall() {
         }
 
         socket.on("all-users", (users) => {
+          console.log("✓ All-users event received. Users in room:", users);
           users.forEach((user) => {
             const peer = createPeer(user.userId, stream);
             peerConnections.current[user.userId] = peer;
@@ -143,6 +146,7 @@ export default function Videocall() {
         });
 
         socket.on("user-joined", ({ userId, username, videoEnabled }) => {
+          console.log("✓ User joined:", username, "(" + userId + ")");
           const peer = addPeer(userId, stream);
           peerConnections.current[userId] = peer;
           setPeers((prev) => [
@@ -188,11 +192,27 @@ export default function Videocall() {
           setPeers((prev) => prev.filter((p) => p.peerID !== userId));
         });
       })
-      .catch(() => {
-        toast.error("Media access denied. Please allow camera and mic.", {
+      .catch((error) => {
+        console.error("❌ Media access error:", error);
+        let errorMessage = "Media access denied. Please allow camera and microphone.";
+        
+        if (error.name === "NotAllowedError") {
+          errorMessage = "Permission denied: Please allow camera and microphone access in your browser settings.";
+          console.warn("💡 You denied permissions. Go to browser settings to allow camera/mic.");
+        } else if (error.name === "NotFoundError") {
+          errorMessage = "No camera or microphone found on this device.";
+        } else if (error.name === "NotReadableError") {
+          errorMessage = "Cannot access camera/microphone. They might be in use by another application.";
+        } else if (error.name === "SecurityError") {
+          errorMessage = "Secure connection required (HTTPS). Camera not available over HTTP.";
+        }
+        
+        console.error("Error details:", error.name, error.message);
+        toast.error(errorMessage, {
           position: "bottom-center",
+          autoClose: 5000,
         });
-        navigate("/");
+        setTimeout(() => navigate("/"), 3000);
       });
 
     return () => {

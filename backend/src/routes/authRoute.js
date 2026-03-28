@@ -1,5 +1,7 @@
-const passport = require("passport");
+﻿const passport = require("passport");
 const { Register, Login, VerifyOTP, ResendOTP } = require("../controllers/authController");
+const { updateProfile, getUserProfile, changePassword, getAllUsers, deleteAccount } = require("../controllers/userController");
+const { generateMeetingId, startMeeting, endMeeting, getMeetingDetails, listMeetings, addChatMessage, getMeetingStats } = require("../controllers/meetingController");
 const { userVerification } = require("../middlewares/authMiddleware");
 const router = require("express").Router();
 const multer = require("multer");
@@ -9,7 +11,11 @@ const path = require("path");
 const { activeMeetings } = require("../utils/MeetingStore");
 const Meetings = require("../models/meetings.model");
 const { generateSummaryFromTranscript } = require("../utils/aiSummaryService");
+const { storeMeetingInMemory, findMeetingsByAdminInMemory } = require("../utils/testMeetingStore");
 const fs = require("fs");
+
+// Flag to track if MongoDB is available for meetings
+let meetingsMongoDBAvailable = true;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -100,7 +106,7 @@ router.put(
         updatedProfilePic: updatedUser.profilePic,
       });
     } catch (err) {
-      console.error("❌ Update error:", err);
+      console.error("âŒ Update error:", err);
       res
         .status(500)
         .json({ success: false, message: "Update failed", error: err.message });
@@ -114,7 +120,7 @@ router.delete("/delete-profile", userVerification, async (req, res) => {
     console.log("user", userId);
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ sucess: false, message: "user not found" });
+      return res.status(404).json({ success: false, message: "user not found" });
     }
     const val = await User.findByIdAndDelete(userId);
     console.log(val);
@@ -171,13 +177,33 @@ router.post("/check-meeting", (req, res) => {
 router.post("/past-meeting", async (req, res) => {
   try {
     const { meetingId, username, admin } = req.body;
-    const meeting = new Meetings({
-      username,
-      meetingId,
-      admin,
+    
+    // Try MongoDB first
+    if (meetingsMongoDBAvailable) {
+      try {
+        const meeting = new Meetings({
+          username,
+          meetingId,
+          admin,
+        });
+        await meeting.save();
+        return res.status(201).json({ success: true, message: "Meeting saved", meetingDocId: meeting._id.toString() });
+      } catch (error) {
+        console.warn("MongoDB unavailable for meetings, switching to in-memory storage", error.message);
+        meetingsMongoDBAvailable = false;
+        // Fall through to in-memory store
+      }
+    }
+    
+    // Fall back to in-memory store
+    const meetingData = { username, meetingId, admin };
+    const result = await storeMeetingInMemory(meetingData);
+    console.log("⚠️  Meeting saved to in-memory storage (MongoDB unavailable)");
+    res.status(201).json({ 
+      success: true, 
+      message: "Meeting saved (in-memory)", 
+      meetingDocId: result.docId 
     });
-    await meeting.save();
-    res.status(201).json({ success: true, message: "Meeting saved", meetingDocId: meeting._id.toString() });
   } catch (error) {
     console.error("Error saving meeting:", error);
     res.status(500).json({ success: false, message: "Failed to save meeting" });
@@ -188,15 +214,36 @@ router.get("/history", async (req, res) => {
   try {
     const { admin } = req.query;
     if (!admin) {
-      return res.status(400).json({ error: "Admin field is required" });
+      return res.status(400).json({ success: false, message: "Admin field is required" });
     }
-    const userMeetings = await Meetings.find({ admin: admin }).sort({ _id: -1 });
-    const data = userMeetings.map((m) => m.toObject());
-
-    res.status(200).json({ message: "Meetings loaded", data });
+    
+    // Try MongoDB first
+    if (meetingsMongoDBAvailable) {
+      try {
+        const userMeetings = await Meetings.find({ admin: admin }).sort({ _id: -1 });
+        const data = userMeetings.map((m) => m.toObject());
+        return res.status(200).json({ success: true, message: "Meetings loaded", data });
+      } catch (error) {
+        console.warn("MongoDB unavailable for meetings, switching to in-memory storage", error.message);
+        meetingsMongoDBAvailable = false;
+        // Fall through to in-memory store
+      }
+    }
+    
+    // Fall back to in-memory store
+    const meetings = findMeetingsByAdminInMemory(admin);
+    const data = meetings.map(m => ({
+      _id: m._id.toString(),
+      username: m.username,
+      meetingId: m.meetingId,
+      admin: m.admin,
+      createdAt: m.createdAt
+    }));
+    console.log("⚠️  Fetching meetings from in-memory storage");
+    res.status(200).json({ success: true, message: "Meetings loaded (in-memory)", data });
   } catch (err) {
     console.error("Error fetching meetings:", err);
-    res.status(500).json({ error: "Failed to fetch meetings" });
+    res.status(500).json({ success: false, message: "Failed to fetch meetings" });
   }
 });
 
@@ -361,4 +408,37 @@ router.get("/test", (req, res) => {
 });
 router.post("/login", Login);
 router.post("/", userVerification);
+
+// ============ USER ROUTES ============
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadsDir = path.join(__dirname, "..", "uploads", "avatars");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-avatar${ext}`);
+  },
+});
+const uploadAvatar = multer({ storage: avatarStorage, limits: { fileSize: 5 * 1024 * 1024 } });
+
+router.put("/profile", uploadAvatar.single("profilePic"), updateProfile);
+router.get("/profile/:userId", getUserProfile);
+router.put("/change-password", changePassword);
+router.get("/users/all", getAllUsers);
+router.delete("/account", deleteAccount);
+
+// ============ MEETING ROUTES ============
+router.get("/meeting/generate-id", generateMeetingId);
+router.post("/meeting/start", startMeeting);
+router.post("/meeting/end", endMeeting);
+router.get("/meeting/:meetingId", getMeetingDetails);
+router.get("/meetings/list", listMeetings);
+router.post("/meeting/chat", addChatMessage);
+router.get("/meeting/:meetingId/stats", getMeetingStats);
+
 module.exports = router;
+

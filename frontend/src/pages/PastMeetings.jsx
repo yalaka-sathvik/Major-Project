@@ -1,14 +1,25 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
-
-export const BackendURL = import.meta.env.VITE_API_URL;
+import { BackendURL } from "../config/backendConfig";
 
 function PastMeetings() {
+  const navigate = useNavigate();
   const [meetings, setMeetings] = useState([]);
   const [expandedMeeting, setExpandedMeeting] = useState(null);
   const [generatingSummaryFor, setGeneratingSummaryFor] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please login first", { position: "bottom-left" });
+      setTimeout(() => navigate("/login"), 1500);
+      return;
+    }
+    fetchMeetings();
+  }, [navigate]);
 
   const fetchMeetings = async () => {
     try {
@@ -17,12 +28,9 @@ function PastMeetings() {
       setMeetings(response.data.data || []);
     } catch (error) {
       console.error("Error fetching past meetings:", error);
+      toast.error("Failed to load meetings", { position: "bottom-center" });
     }
   };
-
-  useEffect(() => {
-    fetchMeetings();
-  }, []);
 
   const toggleMeeting = (index) => {
     setExpandedMeeting((prev) => (prev === index ? null : index));

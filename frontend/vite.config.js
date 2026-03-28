@@ -5,6 +5,10 @@ import { NodeModulesPolyfillPlugin } from "@esbuild-plugins/node-modules-polyfil
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    host: "0.0.0.0",
+    port: 5173,
+  },
   optimizeDeps: {
     esbuildOptions: {
       define: {

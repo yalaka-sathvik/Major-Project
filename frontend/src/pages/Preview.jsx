@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import socket from "./socket";
 import axios from "axios";
-export const BackendURL = import.meta.env.VITE_API_URL;
+import { BackendURL } from "../config/backendConfig";
 
 function Preview() {
   const { state } = useLocation();
