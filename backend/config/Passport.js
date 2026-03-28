@@ -2,7 +2,8 @@ const passport=require("passport");
 const googleStrategy=require("passport-google-oauth20").Strategy;
 const User=require("../src/models/user.models");
 const { createSecretToken } = require("../src/secretToken");
-require("dotenv").config();
+const { loadEnv } = require("../src/utils/loadEnv");
+loadEnv();
 const BACKEND_URL =
   process.env.BACKEND_URL || "https://clear-connect-xhdj.onrender.com";
 
@@ -49,6 +50,6 @@ if (process.env.GOOGLE_CLIENT_KEY && process.env.GOOGLE_CLIENT_SECRET) {
     )
   );
 } else {
-  console.warn("⚠️  Google OAuth credentials not configured. Google login will be disabled.");
-  console.warn("   Set GOOGLE_CLIENT_KEY and GOOGLE_CLIENT_SECRET in .env to enable OAuth.");
+  console.warn("Google OAuth credentials not configured. Google login will be disabled.");
+  console.warn("Set GOOGLE_CLIENT_KEY and GOOGLE_CLIENT_SECRET in .env to enable OAuth.");
 }

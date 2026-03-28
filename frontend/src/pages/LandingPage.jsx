@@ -1,271 +1,511 @@
-import React, { useState } from "react";
+ import React, { useState } from "react";
+
 import Navbar from "./Navbar";
-import axios from "axios";
+
+import {
+
+  Container,
+
+  Grid,
+
+  Card,
+
+  CardContent,
+
+  CardActions,
+
+  Typography,
+
+  Button,
+
+  Dialog,
+
+  DialogTitle,
+
+  DialogContent,
+
+  DialogActions,
+
+  TextField,
+
+  Box,
+
+  Fade
+
+} from '@mui/material';
+
 import { useNavigate } from "react-router-dom";
-import { BackendURL } from "../config/backendConfig";
+
+import api from "../utils/api";
 
 function LandingPage() {
+
   const [meetingId, setMeetingId] = useState("");
-  const [username, setUsername] = useState("");
-  const [message, setMessage] = useState("");
-  const Navigate = useNavigate();
+
+  const [username, setUsername ] = useState("");
+
+  const [message, setMessage ] = useState("");
+
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const [joinOpen, setJoinOpen] = useState(false);
+
+  const navigate = useNavigate();
+
   const userFound = localStorage.getItem("token");
+
   async function handleCreate(isCreating) {
-    const modal = document.getElementById("create");
-    const modalInstance = bootstrap.Modal.getInstance(modal);
-    if (modalInstance) {
-      modalInstance.hide();
-    }
+
+    setCreateOpen(false);
+
     try {
+
       if (!userFound) {
+
         setMessage("Sign in to create a meeting");
+
         return;
+
       }
-      const res = await axios.post(`${BackendURL}/check-meeting`, {
+
+      const res = await api.post("check-meeting", {
+
         meetingId,
+
       });
-      console.log(res);
+
       if (res.data.exists) {
-        console.log(res);
+
         setMessage("Meeting ID already in use. Please choose a different one.");
+
         return;
+
       }
-      Navigate("/preview", {
+
+      navigate("/preview", {
+
         state: {
+
           meetingId,
+
           username,
+
           isCreating,
+
         },
+
       });
+
     } catch (err) {
+
       console.log(err);
+
+      setMessage("Error creating meeting");
+
     }
+
   }
+
   function handleJoin(isCreating) {
+
+    setJoinOpen(false);
+
     if (!userFound) {
+
       setMessage("Sign in or login to join a meeting");
+
       return;
+
     }
     if (!meetingId.trim()) {
       setMessage("Please enter a valid meeting ID");
       return;
     }
-    console.log("joinnnnn");
-    Navigate("/preview", {
+
+    navigate("/preview", {
+
       state: {
+
         meetingId: meetingId.trim(),
+
         username,
+
         isCreating,
+
       },
+
     });
+
   }
+
   return (
+
     <>
+
       <Navbar />
-      <div className="container mt-3">
-        <div className="row">
-          <div className="col-6">
-            <h3 style={{ color: "var(--text-color)", marginTop: "-35px" }}>
-              PopMeet - Where Conversations Drive Impact
-            </h3>
-            <p style={{ color: "var(--text-color)", fontSize: "large" }}>
-              Your unified platform for secure, high-quality virtual meetings
-              and meaningful connections — anytime, anywhere.
-            </p>
-          </div>
-        </div>
-        <br />
-        <br />
-        <div className="row mt-6" id="create">
-          <div className="col-md-3 mb-3">
-            <div className="card gradient-card border border-dark">
-              <div className="card-body">
-                <h5 className="card-title">Create A Meeting</h5>
-                <p className="card-text">Create your own instant meeting</p>
-                <button
-                  type="button"
-                  className="themed-btn border border-dark"
-                  data-bs-toggle="modal"
-                  data-bs-target="#createMeetingModal"
-                >
-                  Create a meeting
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <div className="col-md-3 mb-3">
-            <div className="card gradient-card border border-dark">
-              <div className="card-body">
-                <h5 className="card-title">Join A Meeting</h5>
-                <p className="card-text">
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+
+          <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+
+            PopMeet
+
+          </Typography>
+
+          <Typography variant="h5" color="text.secondary" paragraph>
+
+            Where Conversations Drive Impact
+
+          </Typography>
+
+          <Typography variant="body1" color="text.secondary" maxWidth="600px" mx="auto">
+
+            Your unified platform for secure, high-quality virtual meetings and meaningful connections — anytime, anywhere.
+
+          </Typography>
+
+        </Box>
+
+        <Grid container spacing={4} justifyContent="center">
+
+          <Grid item xs={12} sm={6} md={3}>
+
+            <Card sx={{ height: '100%', transition: 'transform 0.3s', '&:hover': { transform: 'translateY(-8px)' } }}>
+
+              <CardContent>
+
+                <Typography variant="h6" gutterBottom fontWeight="bold">
+
+                  Create A Meeting
+
+                </Typography>
+
+                <Typography variant="body2" color="text.secondary">
+
+                  Create your own instant meeting
+
+                </Typography>
+
+              </CardContent>
+
+              <CardActions>
+
+                <Button 
+
+                  fullWidth 
+
+                  variant="contained" 
+
+                  color="primary"
+
+                  onClick={() => setCreateOpen(true)}
+
+                >
+
+                  Create Now
+
+                </Button>
+
+              </CardActions>
+
+            </Card>
+
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+
+            <Card sx={{ height: '100%', transition: 'transform 0.3s', '&:hover': { transform: 'translateY(-8px)' } }}>
+
+              <CardContent>
+
+                <Typography variant="h6" gutterBottom fontWeight="bold">
+
+                  Join A Meeting
+
+                </Typography>
+
+                <Typography variant="body2" color="text.secondary">
+
                   Join a meeting quickly using meeting ID
-                </p>
-                <button
-                  type="button"
-                  className="themed-btn border border-dark"
-                  data-bs-toggle="modal"
-                  data-bs-target="#joinMeetingModal"
-                >
-                  Join a meeting
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <div className="col-md-3 mb-3">
-            <div className="card gradient-card border border-dark">
-              <div className="card-body">
-                <h5 className="card-title">Past Meetings</h5>
-                <p className="card-text">Check your past meetings history</p>
-                <a
-                  href="/past-meetings"
-                  className="themed-btn border border-dark"
+                </Typography>
+
+              </CardContent>
+
+              <CardActions>
+
+                <Button 
+
+                  fullWidth 
+
+                  variant="contained" 
+
+                  color="secondary"
+
+                  onClick={() => setJoinOpen(true)}
+
                 >
+
+                  Join Now
+
+                </Button>
+
+              </CardActions>
+
+            </Card>
+
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+
+            <Card sx={{ height: '100%', transition: 'transform 0.3s', '&:hover': { transform: 'translateY(-8px)' } }}>
+
+              <CardContent>
+
+                <Typography variant="h6" gutterBottom fontWeight="bold">
+
                   Past Meetings
-                </a>
-              </div>
-            </div>
-          </div>
 
-          <div className="col-md-3 mb-3">
-            <div className="card gradient-card border border-dark">
-              <div className="card-body">
-                <h5 className="card-title">Edit your profile</h5>
-                <p className="card-text">Edit and view your profile data</p>
-                <a href="/profile" className="themed-btn border border-dark">
-                  Edit
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                </Typography>
 
-      <div
-        className="modal fade"
-        id="createMeetingModal"
-        tabIndex="-1"
-        aria-labelledby="createMeetingModalLabel"
-      >
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title" id="createMeetingModalLabel">
-                Create a Meeting
-              </h5>
-              <button
-                type="button"
-                className="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div className="modal-body">
-              <form>
-                <div className="mb-3">
-                  <label className="form-label">Meeting ID</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Create a meeting ID"
-                    onChange={(e) => setMeetingId(e.target.value)}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Join as name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter Name"
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                </div>
-                <div className="end">
-                  <button
-                    type="button"
-                    className="themed-btn"
-                    data-bs-dismiss="modal"
-                  >
-                    Cancel
-                  </button>
-                  &nbsp;&nbsp;&nbsp;&nbsp;
-                  <button
-                    type="button"
-                    className="themed-btn"
-                    onClick={() => handleCreate(true)}
-                  >
-                    Create
-                  </button>
-                </div>
-                <p className="mt-2">{message}</p>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
+                <Typography variant="body2" color="text.secondary">
 
-      <div
-        className="modal fade"
-        id="joinMeetingModal"
-        tabIndex="-1"
-        aria-labelledby="joinMeetingModalLabel"
-      >
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title" id="joinMeetingModalLabel">
-                Join a Meeting
-              </h5>
-              <button
-                type="button"
-                className="btn-close"
-                data-bs-dismiss="modal"
+                  Check your past meetings history
 
-                aria-label="Close"
-              ></button>
-            </div>
-            <div className="modal-body">
-              <form>
-                <div className="mb-3">
-                  <label className="form-label">Meeting ID</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter meeting ID"
-                    onChange={(e) => setMeetingId(e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter Name"
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                </div>
-              </form>
-            </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="themed-btn"
-                data-bs-dismiss="modal"
-              >
+                </Typography>
+
+              </CardContent>
+
+              <CardActions>
+
+                <Button 
+
+                  fullWidth 
+
+                  variant="contained"
+
+                  href="/past-meetings"
+
+                >
+
+                  View History
+
+                </Button>
+
+              </CardActions>
+
+            </Card>
+
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+
+            <Card sx={{ height: '100%', transition: 'transform 0.3s', '&:hover': { transform: 'translateY(-8px)' } }}>
+
+              <CardContent>
+
+                <Typography variant="h6" gutterBottom fontWeight="bold">
+
+                  Edit Profile
+
+                </Typography>
+
+                <Typography variant="body2" color="text.secondary">
+
+                  Edit and view your profile data
+
+                </Typography>
+
+              </CardContent>
+
+              <CardActions>
+
+                <Button 
+
+                  fullWidth 
+
+                  variant="contained"
+
+                  href="/profile"
+
+                >
+
+                  Edit Profile
+
+                </Button>
+
+              </CardActions>
+
+            </Card>
+
+          </Grid>
+
+        </Grid>
+
+      </Container>
+
+      {/* Create Dialog */}
+
+      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
+
+        <Fade in={createOpen}>
+
+          <div>
+
+            <DialogTitle>Create a Meeting</DialogTitle>
+
+            <DialogContent>
+
+              <TextField
+
+                fullWidth
+
+                label="Meeting ID"
+
+                value={meetingId}
+
+                onChange={(e) => setMeetingId(e.target.value)}
+
+                variant="outlined"
+
+                sx={{ mt: 2 }}
+
+              />
+
+              <TextField
+
+                fullWidth
+
+                label="Display Name"
+
+                value={username}
+
+                onChange={(e) => setUsername(e.target.value)}
+
+                variant="outlined"
+
+                sx={{ mt: 2 }}
+
+              />
+
+              {message && (
+
+                <Typography color="error" sx={{ mt: 2 }}>
+
+                  {message}
+
+                </Typography>
+
+              )}
+
+            </DialogContent>
+
+            <DialogActions>
+
+              <Button onClick={() => setCreateOpen(false)} color="inherit">
+
                 Cancel
-              </button>
-              <button
-                type="button"
-                className="themed-btn"
-                onClick={() => handleJoin(false)}
-              >
-                Join
-              </button>
-              <strong className="mt-3">{message}</strong>
-            </div>
+
+              </Button>
+
+              <Button onClick={() => handleCreate(true)} variant="contained" color="primary">
+
+                Create
+
+              </Button>
+
+            </DialogActions>
+
           </div>
-        </div>
-      </div>
+
+        </Fade>
+
+      </Dialog>
+
+      {/* Join Dialog */}
+
+      <Dialog open={joinOpen} onClose={() => setJoinOpen(false)} maxWidth="sm" fullWidth>
+
+        <Fade in={joinOpen}>
+
+          <div>
+
+            <DialogTitle>Join a Meeting</DialogTitle>
+
+            <DialogContent>
+
+              <TextField
+
+                fullWidth
+
+                label="Meeting ID"
+
+                value={meetingId}
+
+                onChange={(e) => setMeetingId(e.target.value)}
+
+                variant="outlined"
+
+                sx={{ mt: 2 }}
+
+              />
+
+              <TextField
+
+                fullWidth
+
+                label="Display Name"
+
+                value={username}
+
+                onChange={(e) => setUsername(e.target.value)}
+
+                variant="outlined"
+
+                sx={{ mt: 2 }}
+
+              />
+
+              {message && (
+
+                <Typography color="error" sx={{ mt: 2 }}>
+
+                  {message}
+
+                </Typography>
+
+              )}
+
+            </DialogContent>
+
+            <DialogActions>
+
+              <Button onClick={() => setJoinOpen(false)} color="inherit">
+
+                Cancel
+
+              </Button>
+
+              <Button onClick={() => handleJoin(false)} variant="contained" color="primary">
+
+                Join
+
+              </Button>
+
+            </DialogActions>
+
+          </div>
+
+        </Fade>
+
+      </Dialog>
+
     </>
+
   );
+
 }
 
 export default LandingPage;

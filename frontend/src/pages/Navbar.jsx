@@ -6,11 +6,6 @@ import { BackendURL } from "../config/backendConfig";
 function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const handleError = (err) =>
-    toast.error(err, {
-      position: "bottom-left",
-    });
-
   const handleSuccess = (msg) =>
     toast.success(msg, {
       position: "bottom-right",

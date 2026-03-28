@@ -116,7 +116,13 @@ export default function Videocall() {
               if (e.error !== "aborted" && e.error !== "no-speech") console.error("Speech recognition error:", e.error);
             };
             recognition.onend = () => {
-              if (recognitionRef.current) try { recognition.start(); } catch (_) {}
+              if (recognitionRef.current)
+                try {
+                  recognition.start();
+                } catch (err) {
+                  // Ignore restart failures (browser may block frequent SpeechRecognition restarts).
+                  console.debug("Speech recognition restart failed:", err?.message);
+                }
             };
             try {
               recognition.start();
@@ -219,7 +225,7 @@ export default function Videocall() {
       socket.off("server-msg", handleServerMsg);
       socket.disconnect();
     };
-  }, []);
+  }, [isAudio, isVideo, meetingId, navigate, username]);
 
   function createPeer(userId, stream) {
     const peer = new RTCPeerConnection({ iceServers });
@@ -689,7 +695,7 @@ function Video({ stream, username, isSelf = false, userVideoRef, videoEnabled = 
   useEffect(() => {
     const videoElement = isSelf ? userVideoRef?.current : ref.current;
     if (videoElement && stream) videoElement.srcObject = stream;
-  }, [stream]);
+  }, [stream, isSelf, userVideoRef]);
 
   useEffect(() => setShowVideo(videoEnabled), [videoEnabled]);
 
